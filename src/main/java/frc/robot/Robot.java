@@ -27,21 +27,24 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
    */
 
 class Robot extends TimedRobot {
-
+/*PORTS
+   */
   int kPilotstick1Port = 0;
   int kPilotstick2Port = 0;
   int kCopilotstick3Port = 1;
 
   int kMotorLeftPort = 9;
   int kMotorRightPort = 0;
-  
-  int kPositionSetpoint1 = 0;
-  int kPositionSetpoint2 = 90;
-  int kPositionSetpoint3 = -90;
-  int kPositionSetpoint4 = 170;
-  int kPositionSetpoint5 = -170;
+ 
+  int kIntakePort = 5;
 
-  int kEnableSetpoint1Button = 1;
+  int kPanelPort = 4;
+
+  int kClimbPort = 3;
+
+  /*BUTTONS  m_pilotStick1 
+   */
+  int kEnableSetpoint1ButtonPilot = 1;
   int kEnableSetpoint2Button = 2;
   int kEnableSetpoint3Button = 3;
   int kEnableSetpoint4Button = 4;
@@ -49,18 +52,40 @@ class Robot extends TimedRobot {
 
   int kEnablePIDmoveButton = 8;
 
-  int kIntakePort = 5;
+  /*BUTTONS  m_copilotStick
+   */
   int kIntakeButton1 = 1;
-  int kIntakeButtonreverse = 2;
-  double kIntakevelocity = 0.5 ;
-
-  int kPanelPort = 4;
-  int kEnablePanelButton = 5 ;
-  double kPanelvelocity = 0.5;
+  int KShooterPneumoButton =2;
+  int kIntakeButtonreverse =10 ;
   
-  int kClimbPort = 3;
-  int kEnableClimbButton = 10;
+  int KEnablePanelPneumoButton = 5;
+  int kEnablePanelRotationButton = 6 ;
 
+
+  int kEnableClimbButton = 7;
+  int kEnablePneumaticClimbButton = 8;
+  int kEnableReverseClimbButton = 9;
+
+  /*VELOCITY
+   */
+  double kIntakevelocity = 0.5 ;
+  double kPanelvelocity = 0.5;
+
+
+  
+  /*SETPOINTS
+   */
+  int kPositionSetpoint1 = 0;
+  int kPositionSetpoint2 = 90;
+  int kPositionSetpoint3 = -90;
+  int kPositionSetpoint4 = 170;
+  int kPositionSetpoint5 = -170;
+
+  
+ 
+  
+  
+  
 
   static Timer m_timer = new Timer();
   
@@ -110,7 +135,7 @@ class Robot extends TimedRobot {
   }
 
   void listenSetpointButtons() {
-    if (m_pilotStick1.getRawButton(kEnableSetpoint1Button)) {
+    if (m_pilotStick1.getRawButton(kEnableSetpoint1ButtonPilot)) {
       m_pidTurnController.setSetpoint(kPositionSetpoint1);
       setpoint = kPositionSetpoint1;
     }
@@ -131,43 +156,59 @@ class Robot extends TimedRobot {
       setpoint = kPositionSetpoint5;
     }
   }
-void listenChassiMovementButtons(){
-  if (m_pilotStick1.getRawButton(kEnablePIDmoveButton)) {
-    double pidOutput = m_pidTurnController.calculate(m_gyro.pidGet());
-    zRotation = pidOutput;
-    m_chassiDrive.arcadeDrive(0.0, zRotation);
-  } else {
-    m_chassiDrive.tankDrive(m_pilotStick1.getY(), m_pilotStick2.getY(), true);
-    zRotation = 0;
+
+  void listenChassiMovementButtons(){
+    if (m_pilotStick1.getRawButton(kEnablePIDmoveButton)) {
+      double pidOutput = m_pidTurnController.calculate(m_gyro.pidGet());
+      zRotation = pidOutput;
+      m_chassiDrive.arcadeDrive(0.0, zRotation);
+    } else {
+      m_chassiDrive.tankDrive(m_pilotStick1.getY(), m_pilotStick2.getY(), true);
+      zRotation = 0;
+    }
   }
 
-}
-  @Override
-  public void teleopPeriodic() {
-    listenSetpointButtons();
-
+  void listenIntakeShooterButtons(){
     if(m_copilotStick.getRawButton(kIntakeButton1)){
       m_intakeMotor.set(kIntakevelocity);
     }
     if(m_copilotStick.getRawButton(kIntakeButtonreverse)){
       m_intakeMotor.set(-kIntakevelocity);
     }
-
+  }
+   /*Shooter pneumatic. We had already declared int "kShooterPneumoButton".
+    if(m_copilotStick.getRawButton(kShooterPneumoButton)){
+     m_doubleSolenoid.set(value);
+   }*/
   
-    
-    if(m_copilotStick.getRawButton(kEnablePanelButton)){
+  void listenControlPanelButton (){
+    // if(m_copilotStick.getRawButton(KEnablePanelPneumoButton)){
+    //   m_doubleSolenoid.set(value);
+    // }      
+
+    if(m_copilotStick.getRawButton(kEnablePanelRotationButton)){
       m_panelMotor.set(kPanelvelocity);
     }
-    // [Or Barel] comentei pq dar un tranco com veloc. máx. no motor pode dar pau.
-    // if(stick3.getRawButton(2) && stick3.getRawButton(1)) {
-    // motorClimb.set(1);
-    // }
+  }
 
+  void listenClimbButton (){
     if (m_copilotStick.getRawButton(kEnableClimbButton)) {
       m_climbMotor.set(m_copilotStick.getY());
     }
-
+  }
+  
+  @Override
+  public void teleopPeriodic() {
+    listenSetpointButtons();
+    
     listenChassiMovementButtons();
+    
+    listenIntakeShooterButtons();
+
+    listenControlPanelButton();
+  
+    listenClimbButton();
+    
     log();
   }
 
