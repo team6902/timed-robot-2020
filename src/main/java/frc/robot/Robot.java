@@ -20,7 +20,12 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.controller.PIDController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
- 
+
+/**[LUCAS GRIS] TESTAR MOVIMENTAÇÃO DO CHASSIIIIIII!!! MUITAS COISAS INVERTIDAS!
+   * This function is run when the robot is first started up and should be used
+   * for any initialization code.
+   */
+
 class Robot extends TimedRobot {
 
   int kPilotstick1Port = 0;
@@ -84,10 +89,6 @@ class Robot extends TimedRobot {
 
   double zRotation = 0.0;
 
-  /**
-   * This function is run when the robot is first started up and should be used
-   * for any initialization code.
-   */
   @Override
   public void robotInit() {
     m_pilotStick2.setYChannel(5);
@@ -153,6 +154,7 @@ void listenChassiMovementButtons(){
     }
 
   
+    
     if(m_copilotStick.getRawButton(kEnablePanelButton)){
       m_panelMotor.set(kPanelvelocity);
     }
