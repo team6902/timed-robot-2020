@@ -6,11 +6,9 @@
 /*----------------------------------------------------------------------------*/
 
 package frc.robot;
-
 import com.kauailabs.navx.frc.AHRS;
-
 import edu.wpi.first.wpilibj.Compressor;
-import edu.wpi.first.wpilibj.DoubleSolenoid;
+import edu.wpi.first.wpilibj.DoubleSolenoid; 
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Spark;
@@ -21,6 +19,8 @@ import edu.wpi.first.wpilibj.controller.PIDController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
+/*[Or Barel] Talvez não vamos usar motor no Shooter e sim PNEUMÁTICA(voids e variaveis de shooter motor comentadas tbm)
+
 /**[LUCAS GRIS] TESTAR MOVIMENTAÇÃO DO CHASSIIIIIII!!! MUITAS COISAS INVERTIDAS!
    * This function is run when the robot is first started up and should be used
    * for any initialization code.
@@ -28,15 +28,18 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 class Robot extends TimedRobot {
 /*PORTS
-   */
+   */  
+  /* portas USB */
   int kPilotstick1Port = 0;
   int kPilotstick2Port = 0;
   int kCopilotstick3Port = 1;
 
+  /* portas ROBORIO */
   int kMotorLeftPort = 9;
   int kMotorRightPort = 0;
  
   int kIntakePort = 5;
+  /* int kShooterMotorPort= 6; */
 
   int kPanelPort = 4;
 
@@ -54,8 +57,9 @@ class Robot extends TimedRobot {
 
   /*BUTTONS  m_copilotStick
    */
-  int kIntakeButton1 = 1;
-  int KShooterPneumoButton =2;
+  int kIntakeButton = 1;
+  /* int KShooterMotorButton =2; */
+  int KShooterPneumoButton = 2; 
   int kIntakeButtonreverse =10 ;
   
   int KEnablePanelPneumoButton = 5;
@@ -69,7 +73,9 @@ class Robot extends TimedRobot {
   /*VELOCITY
    */
   double kIntakevelocity = 0.5 ;
-  double kPanelvelocity = 0.5;
+  double kPanelvelocity = 1;
+  double kShootervelocity = 1;
+  double kClimReversevelocity = 0.4;
 
 
   
@@ -80,18 +86,30 @@ class Robot extends TimedRobot {
   int kPositionSetpoint3 = -90;
   int kPositionSetpoint4 = 170;
   int kPositionSetpoint5 = -170;
+  
+  /* BOOLEANS 
+  */
+  /*[Or Barel] Talvez não vamos usar motor no Shooter e sim PNEUMÁTICA(voids e variaveis de shooter motor comentadas tbm)-
+  variavel de iniciaçao do shooter MOTOR (começando fechado) 
+  boolean shooterIsOpen = false; */
+
+  /* variavel de iniciaçao do shooter PNEUMÁTICO (começando fechado) */
+  boolean PneumoShooterIsOpen = false;
+  /* variavel de iniciaçao do pneumatico-panel (começando desligado) */
+  boolean pneumoIsActive = false;
 
   
- 
-  
-  
-  
-
+  /* TIMER */
   static Timer m_timer = new Timer();
   
+  /* PNEUMATIC  */
   Compressor m_compressor = new Compressor();
-  DoubleSolenoid m_doubleSolenoid = new DoubleSolenoid(0,1);
+  DoubleSolenoid m_shooterdoubleSolenoid = new DoubleSolenoid (0,1);
+  DoubleSolenoid m_panelodoubleSolenoid = new DoubleSolenoid(2,3);
+  DoubleSolenoid m_climbdoubleSolenoid = new DoubleSolenoid(4,5);
+  
 
+  /* CHASSI MOVEMENT- SPARKS-PID-DOUBLEROTAT */
   Spark m_chassiMotorsLeft = new Spark(kMotorLeftPort);
   Spark m_chassiMotorsRight = new Spark(kMotorRightPort);
   DifferentialDrive m_chassiDrive = new DifferentialDrive(m_chassiMotorsLeft, m_chassiMotorsRight);
@@ -101,18 +119,27 @@ class Robot extends TimedRobot {
   double setpoint = 0.0;
   final AHRS m_gyro = new AHRS(I2C.Port.kOnboard);
   final PIDController m_pidTurnController = new PIDController(kTurnP, kTurnI, kTurnD);
+  double zRotation = 0.0;
 
-  Talon m_climbMotor = new Talon(kClimbPort);
+  /*MOTORS & TALONS  */
 
-  Talon m_panelMotor = new Talon(kPanelPort);
-
+  /* Intake e Shooter  */
   Talon m_intakeMotor = new Talon (kIntakePort);
 
+  /* Control Panel  */
+  Talon m_panelMotor = new Talon(kPanelPort);
+     /* Talon m_shooterMotor = new Talon (kShooterPort); */
+
+  /* Climbing  */
+  Talon m_climbMotor = new Talon(kClimbPort);
+
+
+ /* JOYSTICK */
   final Joystick m_pilotStick1 = new Joystick(kPilotstick1Port);
   final Joystick m_pilotStick2 = new Joystick(kPilotstick2Port);
   final Joystick m_copilotStick = new Joystick(kCopilotstick3Port);
 
-  double zRotation = 0.0;
+ 
 
   @Override
   public void robotInit() {
@@ -169,22 +196,45 @@ class Robot extends TimedRobot {
   }
 
   void listenIntakeShooterButtons(){
-    if(m_copilotStick.getRawButton(kIntakeButton1)){
+    
+   if(m_copilotStick.getRawButton(kIntakeButton)){
       m_intakeMotor.set(kIntakevelocity);
+    }
+   /*[Or Barel] Talvez não vamos usar motor no Shooter e sim PNEUMÁTICA(voids e variaveis de shooter motor comentadas tbm)
+    /*if (m_copilotStick.getRawButton(KShooterButton) && !shooterIsopen) {
+      m_shooterMotor.set(kShootervelocity);
+      shooterIsOpen= true;
+    }              
+    else if(m_copilotStick.getRawButton(KShooterButton) && shooterIsOpen){
+      m_shooterMotor.set(-kShootervelocity);
+      shooterIsopen = false;
+    }*/                    
+    
+    
+    /* pneumatico do shooter */
+    if(m_copilotStick.getRawButtonPressed(KShooterPneumoButton)&& !PneumoShooterIsOpen){
+     m_shooterdoubleSolenoid.set(DoubleSolenoid.Value.kForward);
+     PneumoShooterIsOpen = true;
+    } 
+    else if (m_copilotStick.getRawButtonPressed(KShooterPneumoButton)&& PneumoShooterIsOpen){
+      m_shooterdoubleSolenoid.set(DoubleSolenoid.Value.kReverse);
+      PneumoShooterIsOpen = false;
     }
     if(m_copilotStick.getRawButton(kIntakeButtonreverse)){
       m_intakeMotor.set(-kIntakevelocity);
     }
   }
-   /*Shooter pneumatic. We had already declared int "kShooterPneumoButton".
-    if(m_copilotStick.getRawButton(kShooterPneumoButton)){
-     m_doubleSolenoid.set(value);
-   }*/
   
   void listenControlPanelButton (){
-    // if(m_copilotStick.getRawButton(KEnablePanelPneumoButton)){
-    //   m_doubleSolenoid.set(value);
-    // }      
+     
+    if(m_copilotStick.getRawButtonPressed(KEnablePanelPneumoButton)&& !pneumoIsActive ){
+      m_panelodoubleSolenoid.set(DoubleSolenoid.Value.kForward);
+      pneumoIsActive = true;
+     }      
+     else if(m_copilotStick.getRawButtonPressed(KEnablePanelPneumoButton) && pneumoIsActive){
+       m_panelodoubleSolenoid.set(DoubleSolenoid.Value.kReverse);
+       pneumoIsActive = false;
+     }
 
     if(m_copilotStick.getRawButton(kEnablePanelRotationButton)){
       m_panelMotor.set(kPanelvelocity);
@@ -194,6 +244,12 @@ class Robot extends TimedRobot {
   void listenClimbButton (){
     if (m_copilotStick.getRawButton(kEnableClimbButton)) {
       m_climbMotor.set(m_copilotStick.getY());
+    }
+    if(m_copilotStick.getRawButton(kEnablePneumaticClimbButton)){
+      m_climbdoubleSolenoid.set(DoubleSolenoid.Value.kForward);
+     }
+    if(m_copilotStick.getRawButton(kEnableReverseClimbButton)){
+      m_climbMotor.set(kClimReversevelocity);
     }
   }
   
@@ -236,4 +292,5 @@ class Robot extends TimedRobot {
   }
 
 }
+
 
