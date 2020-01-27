@@ -30,9 +30,8 @@ class Robot extends TimedRobot {
 /*PORTS
    */  
   /* portas USB */
-  int kPilotstick1Port = 0;
-  int kPilotstick2Port = 0;
-  int kCopilotstick3Port = 1;
+  int kPilotstickPort = 0;
+  int kCopilotstickPort = 1;
 
   /* portas ROBORIO */
   int kMotorLeftPort = 9;
@@ -135,16 +134,14 @@ class Robot extends TimedRobot {
 
 
  /* JOYSTICK */
-  final Joystick m_pilotStick1 = new Joystick(kPilotstick1Port);
-  final Joystick m_pilotStick2 = new Joystick(kPilotstick2Port);
-  final Joystick m_copilotStick = new Joystick(kCopilotstick3Port);
+  final Joystick m_pilotStick = new Joystick(kPilotstickPort);
+  final Joystick m_copilotStick = new Joystick(kCopilotstickPort);
 
  
 
   @Override
   public void robotInit() {
-    m_pilotStick2.setYChannel(5);
-    m_pilotStick2.setThrottleChannel(2);
+    m_pilotStick.setXChannel(4);
     m_compressor.start();
   }
 
@@ -162,35 +159,35 @@ class Robot extends TimedRobot {
   }
 
   void listenSetpointButtons() {
-    if (m_pilotStick1.getRawButton(kEnableSetpoint1ButtonPilot)) {
+    if (m_pilotStick.getRawButton(kEnableSetpoint1ButtonPilot)) {
       m_pidTurnController.setSetpoint(kPositionSetpoint1);
       setpoint = kPositionSetpoint1;
     }
-    if (m_pilotStick1.getRawButton(kEnableSetpoint2Button)) {
+    if (m_pilotStick.getRawButton(kEnableSetpoint2Button)) {
       m_pidTurnController.setSetpoint(kPositionSetpoint2);
       setpoint = kPositionSetpoint2;
     }
-    if (m_pilotStick1.getRawButton(kEnableSetpoint3Button)) {
+    if (m_pilotStick.getRawButton(kEnableSetpoint3Button)) {
       m_pidTurnController.setSetpoint(kPositionSetpoint3);
       setpoint = kPositionSetpoint3;
     }
-    if (m_pilotStick1.getRawButton(kEnableSetpoint4Button)) {
+    if (m_pilotStick.getRawButton(kEnableSetpoint4Button)) {
       m_pidTurnController.setSetpoint(kPositionSetpoint4);
       setpoint = kPositionSetpoint4;
     }
-    if (m_pilotStick1.getRawButton(kEnableSetpoint5Button)) {
+    if (m_pilotStick.getRawButton(kEnableSetpoint5Button)) {
       m_pidTurnController.setSetpoint(kPositionSetpoint5);
       setpoint = kPositionSetpoint5;
     }
   }
 
   void listenChassiMovementButtons(){
-    if (m_pilotStick1.getRawButton(kEnablePIDmoveButton)) {
+    if (m_pilotStick.getRawButton(kEnablePIDmoveButton)) {
       double pidOutput = m_pidTurnController.calculate(m_gyro.pidGet());
       zRotation = pidOutput;
       m_chassiDrive.arcadeDrive(0.0, zRotation);
     } else {
-      m_chassiDrive.tankDrive(m_pilotStick1.getY(), m_pilotStick2.getY(), true);
+      m_chassiDrive.arcadeDrive(m_pilotStick.getY(), m_pilotStick.getX(), true);
       zRotation = 0;
     }
   }
@@ -278,8 +275,6 @@ class Robot extends TimedRobot {
 
   @Override
   public void robotPeriodic() {
-    System.out.println(m_pilotStick2.getThrottle());
-    System.out.println(m_pilotStick1.getThrottle());
     SmartDashboard.putNumber("Angle", m_gyro.getYaw());
     SmartDashboard.putNumber("Turning Value", zRotation);
     SmartDashboard.putNumber("SetPoint", setpoint);
@@ -292,5 +287,4 @@ class Robot extends TimedRobot {
   }
 
 }
-
 
