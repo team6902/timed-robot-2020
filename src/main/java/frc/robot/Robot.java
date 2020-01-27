@@ -7,10 +7,13 @@
 
 package frc.robot;
 import com.kauailabs.navx.frc.AHRS;
+
+import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DoubleSolenoid; 
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.MedianFilter;
 import edu.wpi.first.wpilibj.Spark;
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.cameraserver.CameraServer;
@@ -19,6 +22,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.controller.PIDController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
 
 /*[Or Barel] Talvez não vamos usar motor no Shooter e sim PNEUMÁTICA(voids e variaveis de shooter motor comentadas tbm)
 
@@ -87,7 +91,22 @@ public class Robot extends TimedRobot {
   int kPositionSetpoint4 = 170;
   int kPositionSetpoint5 = -170;
 
+  /* constantes 
+  */
+  private static final int kInfraredPort = 0; /* ajustar */
+    static final double kHoldDistanceBottomPort = 1; /* [Fabio] ajustar */
+    static final double kHoldDistanceControlPanel = 1; /* [Fabio] ajustar */
+    static final double kHoldDistanceAutonomous = 1; /* ajustar */
 
+/* CONSTANTES PID INFRAVERMELHO */
+
+
+
+    private static final double kInfraredP = 7.0;
+    private static final double kInfraredI = 0.018;
+    private static final double kInfraredD = 1.5;
+  
+    
   
   /* BOOLEANS 
   */
@@ -125,6 +144,13 @@ public class Robot extends TimedRobot {
   final PIDController m_pidTurnController = new PIDController(kTurnP, kTurnI, kTurnD);
   double zRotation = 0.0;
 
+  /* movimento pid infravermelho */
+
+  private final MedianFilter m_filter = new MedianFilter(15);
+  private final AnalogInput m_infrared = new AnalogInput(kInfraredPort);
+  private final PIDController m_pidController = new PIDController(kInfraredP, kInfraredI, kInfraredD);
+
+
   /*MOTORS & TALONS  */
 
   /* Intake e Shooter  */
@@ -142,10 +168,21 @@ public class Robot extends TimedRobot {
   final Joystick m_pilotStick = new Joystick(kPilotstickPort);
   final Joystick m_copilotStick = new Joystick(kCopilotstickPort);
 
- 
+ /* limitador de velocidade */
+  public static double limit(double velocity) {
+    if (velocity > .4) return .4;
+    if (velocity < -.4) return -.4;
+    return velocity;
+  }
+
+  public double getpidInfraredOutput (double distance) {
+    m_pidController.setSetpoint(distance);
+    return m_pidController.calculate(m_filter.calculate(m_infrared.getVoltage()));
+  }
+
+
 
   @Override
- 
   public void robotInit() {
     m_pilotStick.setXChannel(4);
     m_compressor.start();
@@ -258,6 +295,7 @@ public class Robot extends TimedRobot {
       m_climbMotor.set(kClimReversevelocity);
     }
   }
+
   
   @Override
   public void teleopPeriodic() {
