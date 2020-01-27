@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Spark;
 import edu.wpi.first.wpilibj.Talon;
+import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.controller.PIDController;
@@ -26,7 +27,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
    * for any initialization code.
    */
 
-class Robot extends TimedRobot {
+public class Robot extends TimedRobot {
 /*PORTS
    */  
   /* portas USB */
@@ -85,6 +86,8 @@ class Robot extends TimedRobot {
   int kPositionSetpoint3 = -90;
   int kPositionSetpoint4 = 170;
   int kPositionSetpoint5 = -170;
+
+
   
   /* BOOLEANS 
   */
@@ -100,6 +103,8 @@ class Robot extends TimedRobot {
   
   /* TIMER */
   static Timer m_timer = new Timer();
+
+  
   
   /* PNEUMATIC  */
   Compressor m_compressor = new Compressor();
@@ -140,10 +145,14 @@ class Robot extends TimedRobot {
  
 
   @Override
+ 
   public void robotInit() {
     m_pilotStick.setXChannel(4);
     m_compressor.start();
+    CameraServer.getInstance().startAutomaticCapture();
   }
+
+  
 
   @Override
   public void autonomousInit() {
