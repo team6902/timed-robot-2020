@@ -1,10 +1,3 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2018 FIRST. All Rights Reserved.                             */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
-
 package frc.robot;
 import com.kauailabs.navx.frc.AHRS;
 
@@ -25,7 +18,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 
 /*[Or Barel] Talvez não vamos usar motor no Shooter e sim PNEUMÁTICA(voids e variaveis de shooter motor comentadas tbm)
-
 /**[LUCAS GRIS] TESTAR MOVIMENTAÇÃO DO CHASSIIIIIII!!! MUITAS COISAS INVERTIDAS!
    * This function is run when the robot is first started up and should be used
    * for any initialization code.
@@ -56,23 +48,24 @@ public class Robot extends TimedRobot {
   int kEnableSetpoint3Button = 3;
   int kEnableSetpoint4Button = 4;
   int kEnableSetpoint5Button = 5;
-
+  int kIntakeButton = 1;
+  int kIntakeButtonreverse =10 ;
   int kEnablePIDmoveButton = 8;
 
   /*BUTTONS  m_copilotStick
    */
-  int kIntakeButton = 1;
+
   /* int KShooterMotorButton =2; */
   int KShooterPneumoButton = 2; 
-  int kIntakeButtonreverse =10 ;
+ 
   
-  int KEnablePanelPneumoButton = 5;
-  int kEnablePanelRotationButton = 6 ;
+ //int KEnablePanelPneumoButton = 5;
+  //int kEnablePanelRotationButton = 6 ;
 
 
-  int kEnableClimbButton = 7;
+  int kEnableClimbButton = 6;
   int kEnablePneumaticClimbButton = 8;
-  int kEnableReverseClimbButton = 9;
+  int kEnableReverseClimbButton = 5;
 
   /*VELOCITY
    */
@@ -167,6 +160,7 @@ public class Robot extends TimedRobot {
  /* JOYSTICK */
   final Joystick m_pilotStick = new Joystick(kPilotstickPort);
   final Joystick m_copilotStick = new Joystick(kCopilotstickPort);
+  final Joystick m_pilotStick1 = new Joystick(kPilotstickPort);
 
  /* limitador de velocidade */
   public static double limit(double velocity) {
@@ -187,6 +181,7 @@ public class Robot extends TimedRobot {
     m_pilotStick.setXChannel(4);
     m_compressor.start();
     CameraServer.getInstance().startAutomaticCapture();
+    m_pilotStick1.setThrottleChannel(2);
   }
 
   
@@ -225,6 +220,8 @@ public class Robot extends TimedRobot {
       m_pidTurnController.setSetpoint(kPositionSetpoint5);
       setpoint = kPositionSetpoint5;
     }
+
+    
   }
 
   void listenChassiMovementButtons(){
@@ -239,11 +236,16 @@ public class Robot extends TimedRobot {
   }
 
   void listenIntakeShooterButtons(){
-    
-   if(m_copilotStick.getRawButton(kIntakeButton)){
+    m_intakeMotor.set(m_pilotStick.getThrottle());
+
+   if(m_pilotStick.getRawButton(kIntakeButton)){
       m_intakeMotor.set(kIntakevelocity);
     }
-   /*[Or Barel] Talvez não vamos usar motor no Shooter e sim PNEUMÁTICA(voids e variaveis de shooter motor comentadas tbm)
+
+    m_intakeMotor.set(-m_pilotStick1.getThrottle());
+   
+   
+    /*[Or Barel] Talvez não vamos usar motor no Shooter e sim PNEUMÁTICA(voids e variaveis de shooter motor comentadas tbm)
     /*if (m_copilotStick.getRawButton(KShooterButton) && !shooterIsopen) {
       m_shooterMotor.set(kShootervelocity);
       shooterIsOpen= true;
@@ -334,4 +336,3 @@ public class Robot extends TimedRobot {
   }
 
 }
-
