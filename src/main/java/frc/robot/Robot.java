@@ -45,24 +45,22 @@ public class Robot extends TimedRobot {
 
   /*BUTTONS  m_pilotStick1 
    */
-  int kEnableSetpoint1ButtonPilot = 1;
+  int kEnableSetpoint1Button = 1;
   int kEnableSetpoint2Button = 2;
   int kEnableSetpoint3Button = 3;
   int kEnableSetpoint4Button = 4;
   int kEnableSetpoint5Button = 5;
-  int kIntakeButton = 1;
-  int kIntakeButtonreverse =10 ;
   int kEnablePIDmoveButton = 8;
+  int kIntakeButton = 6;
 
+  
   /*BUTTONS  m_copilotStick
    */
-
-  /* int KShooterMotorButton =2; */
   int KShooterPneumoButton = 2; 
  
   
- //int KEnablePanelUpButton = 5;    PNEUMÁTICA AGR, DESCOMENTA DPS!
-  //int kEnablePanelRotationButton = 6 ;
+ int KEnablePanelUpButton = 9;  
+ int kEnablePanelRotationButton = 10 ;
 
 
   int kEnableClimbButton = 6;
@@ -75,7 +73,8 @@ public class Robot extends TimedRobot {
   double kPanelUpvelocity = 0.5;
   double kPanelRotationvelocity = 1;
   double kShootervelocity = 1;
-  double kClimReversevelocity = 0.4;
+  double kClimbVelocity = 0.4;
+  double kClimReverseVelocity = 0.4;
 
 
   
@@ -168,9 +167,9 @@ public class Robot extends TimedRobot {
   final Joystick m_pilotStick1 = new Joystick(kPilotstickPort);
 
  /* limitador de velocidade */
-  public static double limit(double velocity) {
-    if (velocity > .4) return .4;
-    if (velocity < -.4) return -.4;
+  public static double limit(double velocity, double limit) {
+    if (velocity > limit) return limit;
+    if (velocity < -limit) return -limit;
     return velocity;
   }
 
@@ -186,7 +185,9 @@ public class Robot extends TimedRobot {
     m_pilotStick.setXChannel(4);
     m_compressor.start();
     CameraServer.getInstance().startAutomaticCapture();
+    m_pilotStick.setThrottleChannel(3);
     m_pilotStick1.setThrottleChannel(2);
+    m_copilotStick.setThrottleChannel(2);
   }
 
   
@@ -205,7 +206,7 @@ public class Robot extends TimedRobot {
   }
 
   void listenSetpointButtons() {
-    if (m_pilotStick.getRawButton(kEnableSetpoint1ButtonPilot)) {
+    if (m_pilotStick.getRawButton(kEnableSetpoint1Button)) {
       m_pidTurnController.setSetpoint(kPositionSetpoint1);
       setpoint = kPositionSetpoint1;
     }
@@ -237,6 +238,9 @@ public class Robot extends TimedRobot {
     } else {
       m_chassiDrive.arcadeDrive(m_pilotStick.getY(), m_pilotStick.getX(), true);
       zRotation = 0;
+    }
+    if (m_copilotStick.getY()!=0 || m_copilotStick.getX()!=0){
+      m_chassiDrive.arcadeDrive(limit(m_copilotStick.getY(), 0.3), limit(m_copilotStick.getX(), 0.3), true);
     }
   }
 
@@ -270,9 +274,6 @@ public class Robot extends TimedRobot {
       m_shooterdoubleSolenoid.set(DoubleSolenoid.Value.kReverse);
       PneumoShooterIsOpen = false;
     }
-    if(m_copilotStick.getRawButton(kIntakeButtonreverse)){
-      m_intakeMotor.set(-kIntakevelocity);
-    }
   }
   
   void listenControlPanelButton (){
@@ -298,18 +299,19 @@ public class Robot extends TimedRobot {
     if(m_copilotStick.getRawButton(kEnablePanelRotationButton)){
       m_panelRotationMotor.set(kPanelRotationvelocity);
     }
-    else{m_panelRotationMotor.set(0)};
+    else
+      m_panelRotationMotor.set(0);
   }
 
   void listenClimbButton (){
     if (m_copilotStick.getRawButton(kEnableClimbButton)) {
-      m_climbMotor.set(m_copilotStick.getY());
+      m_climbMotor.set(kClimbVelocity);
     }
     if(m_copilotStick.getRawButton(kEnablePneumaticClimbButton)){
       m_climbdoubleSolenoid.set(DoubleSolenoid.Value.kForward);
      }
     if(m_copilotStick.getRawButton(kEnableReverseClimbButton)){
-      m_climbMotor.set(kClimReversevelocity);
+      m_climbMotor.set(kClimReverseVelocity);
     }
   }
 
