@@ -12,6 +12,7 @@ import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.Victor;
 import edu.wpi.first.wpilibj.controller.PIDController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -34,10 +35,11 @@ public class Robot extends TimedRobot {
   int kMotorLeftPort = 9;
   int kMotorRightPort = 0;
  
-  int kIntakePort = 5;
-  /* int kShooterMotorPort= 6; */
+  int kIntakePort = 4;
+     /* int kShooterMotorPort= 6; VAI SER FEITO COM PNEUM*/
 
-  int kPanelPort = 4;
+  int kPanelPortUp = 5;
+  int kPanelPortRotation = 6;
 
   int kClimbPort = 3;
 
@@ -59,7 +61,7 @@ public class Robot extends TimedRobot {
   int KShooterPneumoButton = 2; 
  
   
- //int KEnablePanelPneumoButton = 5;
+ //int KEnablePanelUpButton = 5;    PNEUMÁTICA AGR, DESCOMENTA DPS!
   //int kEnablePanelRotationButton = 6 ;
 
 
@@ -70,7 +72,8 @@ public class Robot extends TimedRobot {
   /*VELOCITY
    */
   double kIntakevelocity = 0.5 ;
-  double kPanelvelocity = 1;
+  double kPanelUpvelocity = 0.5;
+  double kPanelRotationvelocity = 1;
   double kShootervelocity = 1;
   double kClimReversevelocity = 0.4;
 
@@ -109,8 +112,9 @@ public class Robot extends TimedRobot {
 
   /* variavel de iniciaçao do shooter PNEUMÁTICO (começando fechado) */
   boolean PneumoShooterIsOpen = false;
-  /* variavel de iniciaçao do pneumatico-panel (começando desligado) */
-  boolean pneumoIsActive = false;
+  /* variavel de iniciaçao do pneumatico-panel (começando desligado) 
+  boolean pneumoIsActive = false; ESSA LINHA FOI COMNTD PQ NÓS VAMOS USAR UM MOTOR AO INVÉS DE PNEUMO PARA PANEL*/
+  boolean PanelIsUp = false;
 
   
   /* TIMER */
@@ -121,8 +125,8 @@ public class Robot extends TimedRobot {
   /* PNEUMATIC  */
   Compressor m_compressor = new Compressor();
   DoubleSolenoid m_shooterdoubleSolenoid = new DoubleSolenoid (0,1);
-  DoubleSolenoid m_panelodoubleSolenoid = new DoubleSolenoid(2,3);
-  DoubleSolenoid m_climbdoubleSolenoid = new DoubleSolenoid(4,5);
+  DoubleSolenoid m_climbdoubleSolenoid = new DoubleSolenoid(2,3);
+/*DoubleSolenoid m_panelodoubleSolenoid = new DoubleSolenoid(4,5); O ROTATION MOTOR DA PANEL VAI SER LEVANTADO POR OUTRO MOTOR*/
   
 
   /* CHASSI MOVEMENT- SPARKS-PID-DOUBLEROTAT */
@@ -146,14 +150,15 @@ public class Robot extends TimedRobot {
 
   /*MOTORS & TALONS  */
 
-  /* Intake e Shooter  */
+  /* Intake e Shooter  (1 talon)*/
   Talon m_intakeMotor = new Talon (kIntakePort);
+  /* Talon m_shooterMotor = new Talon (kShooterPort); */
 
-  /* Control Panel  */
-  Talon m_panelMotor = new Talon(kPanelPort);
-     /* Talon m_shooterMotor = new Talon (kShooterPort); */
-
-  /* Climbing  */
+  /* Control Panel (2 Victors) */
+  Victor m_panelUpMotor = new Victor(kPanelPortUp);
+  Victor m_panelRotationMotor = new Victor(kPanelPortRotation);   
+ 
+  /* Climbing  (1 programação para 2 talons e dois motores associados em redução) */
   Talon m_climbMotor = new Talon(kClimbPort);
 
 
@@ -272,18 +277,28 @@ public class Robot extends TimedRobot {
   
   void listenControlPanelButton (){
      
-    if(m_copilotStick.getRawButtonPressed(KEnablePanelPneumoButton)&& !pneumoIsActive ){
+    /* VAMOS USAR MOTOR AO INVÉS DE PNEUMO-
+     if(m_copilotStick.getRawButtonPressed(KEnablePanelPneumoButton)&& !pneumoIsActive ){
       m_panelodoubleSolenoid.set(DoubleSolenoid.Value.kForward);
       pneumoIsActive = true;
      }      
      else if(m_copilotStick.getRawButtonPressed(KEnablePanelPneumoButton) && pneumoIsActive){
        m_panelodoubleSolenoid.set(DoubleSolenoid.Value.kReverse);
        pneumoIsActive = false;
-     }
+     }*/
 
-    if(m_copilotStick.getRawButton(kEnablePanelRotationButton)){
-      m_panelMotor.set(kPanelvelocity);
+    if(m_copilotStick.getRawButtonPressed(KEnablePanelUpButton)&& !PanelIsUp){
+      m_panelUpMotor.set(kPanelUpvelocity);
+      PanelIsUp = true;      
     }
+    else if(m_copilotStick.getRawButtonPressed(KEnablePanelUpButton) && PanelIsUp){
+      m_panelUpMotor.set(-kPanelUpvelocity);
+      PanelIsUp = false;
+    }
+    if(m_copilotStick.getRawButton(kEnablePanelRotationButton)){
+      m_panelRotationMotor.set(kPanelRotationvelocity);
+    }
+    else{m_panelRotationMotor.set(0)};
   }
 
   void listenClimbButton (){
