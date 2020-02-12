@@ -63,20 +63,17 @@ public class Robot extends TimedRobot {
    * -1 ; //PID// //escolher botao
    */
 
-  /*
-   * VELOCITY
-   */
+  /* VELOCITY */
   double kIntakeRedLineVelocity = 0.3;
   double kIntakeMiniCIMVelocity = 0.6;
   double kClimbVelocity = 0.6;
-  //double kClimReverseVelocity = 0.4;
-  //double ArmVelocityPID = 0.3;
+  // double kClimbReverseVelocity = 0.4;
+  // double ArmVelocityPID = 0.3;
   double kArmUpVelocity = 0.3;
   double kArmDownVelocity = -0.15;
+  double kArmVelocity = .07;
 
-  /*
-   * constantes
-   */
+  /* CONSTANTES */
   private static final int kInfraredPort = 0; /* ajustar */
   static final double kHoldDistanceBottomPort = 1; /* [Fabio] ajustar */
   static final double kHoldDistanceControlPanel = 1; /* [Fabio] ajustar */
@@ -92,12 +89,11 @@ public class Robot extends TimedRobot {
   static Timer m_timer = new Timer();
 
   /* PNEUMATIC */
-  // Compressor m_compressor = new Compressor();
-  // DoubleSolenoid m_climbdoubleSolenoid = new DoubleSolenoid(2, 3);
+  Compressor comp = new Compressor();
+  DoubleSolenoid solenoid = new DoubleSolenoid(0, 1);
+
   /*
-   * 
-   * 
-   * /* CHASSI MOVEMENT- SPARKS-PID-DOUBLEROTAT
+   * CHASSI MOVEMENT- SPARKS-PID-DOUBLEROTAT
    */
   Spark m_chassiMotorsLeft = new Spark(kMotorLeftPort);
   Spark m_chassiMotorsRight = new Spark(kMotorRightPort);
@@ -168,11 +164,6 @@ public class Robot extends TimedRobot {
     m_pidInfraRedController.setSetpoint(distance);
     return m_pidInfraRedController.calculate(m_filter.calculate(m_infrared.getVoltage()));
   }
-
-  /* Pneumatica */
-  Compressor comp = new Compressor();
-  DoubleSolenoid solenoid = new DoubleSolenoid(0, 1);
-  SpeedControllerGroup climb = new SpeedControllerGroup(new Talon(4), new Talon(5));
 
   @Override
   public void robotInit() {
@@ -250,7 +241,7 @@ public class Robot extends TimedRobot {
     } else if (m_copilotStick.getRawButton(kArmButtonDown)) {
       m_MotorArm.set(kArmDownVelocity);
     } else {
-      m_MotorArm.set(m_copilotStick.getY() + .07);
+      m_MotorArm.set(m_copilotStick.getY() + kArmVelocity);
     }
   }
 
@@ -262,11 +253,11 @@ public class Robot extends TimedRobot {
       solenoid.set(DoubleSolenoid.Value.kReverse);
     }
     if (m_copilotStick.getRawButton(-1)) {
-      climb.set(kClimbVelocity);
+      m_climbMotors.set(kClimbVelocity);
     } else if (m_copilotStick.getRawButton(-1)) {
-      climb.set(-kClimbVelocity);
+      m_climbMotors.set(-kClimbVelocity);
     } else {
-      climb.set(0);
+      m_climbMotors.set(0);
     }
   }
 
@@ -281,9 +272,9 @@ public class Robot extends TimedRobot {
     listenArmMovements();
 
     listenClimbButton();
-      
+
     log();
-     
+
   }
 
   @Override
