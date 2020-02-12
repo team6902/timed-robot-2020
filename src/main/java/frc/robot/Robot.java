@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.MedianFilter;
 import edu.wpi.first.wpilibj.Spark;
+import edu.wpi.first.wpilibj.SpeedController;
 import edu.wpi.first.wpilibj.SpeedControllerGroup;
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.cameraserver.CameraServer;
@@ -21,7 +22,6 @@ import edu.wpi.first.wpilibj.controller.PIDController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
-
 public class Robot extends TimedRobot {
   /*
    * PORTS
@@ -31,18 +31,16 @@ public class Robot extends TimedRobot {
   int kCopilotstickPort = 1;
 
   /* portas ROBORIO */
-  int kMotorLeftPort = 1;
-  int kMotorRightPort = 0;
+  int kMotorLeftPort = 8;
+  int kMotorRightPort = 9;
 
-  int kIntakePort = 5;
+  int kRedLinePort = 1;
+  int kMiniCIMPort = 2;
 
+  int kMotorArmPort = 3;
 
-  int kPanelPort = 6;
-
-  int kClimbPort = 2;
-  int kClimbPort2 = 3;
-
-  int kEncoderPort = 4;
+  int kClimbPort = 4;
+  int kClimbPort2 = 5;
 
   /*
    * BUTTONS m_pilotStick1
@@ -55,24 +53,25 @@ public class Robot extends TimedRobot {
    * BUTTONS m_copilotStick
    */
 
-  int KEnablePanelUpButton = 9;
-
   int kEnableClimbButton = 6;
   int kEnablePneumaticClimbButton = 8;
   int kEnableReverseClimbButton = 5;
-  int kEncoderArmShooterUp = 1;//PID//
-  int kEncoderArmShooterDown = 2; //PID//
-  int kEncoderArmClimb  = -1 ; //PID//  //escolher botao
+  int kArmButtonUp = 1;// PID//
+  int kArmButtonDown = 2;// PID//
+  /*
+   * int kPotentiometeroArmShooterDown = 2; //PID// int kPotentiometerArmClimb =
+   * -1 ; //PID// //escolher botao
+   */
 
   /*
    * VELOCITY
    */
-  double kIntakevelocity = 0.5;
-  double kPanelUpvelocity = 0.5;
-  double kPanelRotationvelocity = 1;
+  double kIntakeRedLineVelocity = 0.3;
+  double kIntakeMiniCIMVelocity = 0.6;
   double kShootervelocity = 1;
   double kClimbVelocity = 0.4;
   double kClimReverseVelocity = 0.4;
+  double ArmVelocityPID = 0.3;
 
   /*
    * constantes
@@ -88,37 +87,17 @@ public class Robot extends TimedRobot {
   private static final double kInfraredI = 0.018;
   private static final double kInfraredD = 1.5;
 
-  /*
-   * BOOLEANS
-   */
-  /*
-   * [Or Barel] Talvez não vamos usar motor no Shooter e sim PNEUMÁTICA(voids e
-   * variaveis de shooter motor comentadas tbm)- variavel de iniciaçao do shooter
-   * MOTOR (começando fechado) boolean shooterIsOpen = false;
-   */
-
-  /* variavel de iniciaçao do shooter PNEUMÁTICO (começando fechado) */
-  boolean PneumoShooterIsOpen = false;
-  /*
-   * variavel de iniciaçao do pneumatico-panel (começando desligado) boolean
-   * pneumoIsActive = false; ESSA LINHA FOI COMNTD PQ NÓS VAMOS USAR UM MOTOR AO
-   * INVÉS DE PNEUMO PARA PANEL
-   */
-  boolean PanelIsUp = false;
-
   /* TIMER */
   static Timer m_timer = new Timer();
 
   /* PNEUMATIC */
   // Compressor m_compressor = new Compressor();
-  // DoubleSolenoid m_shooterdoubleSolenoid = new DoubleSolenoid(0, 1);
   // DoubleSolenoid m_climbdoubleSolenoid = new DoubleSolenoid(2, 3);
   /*
-   * DoubleSolenoid m_panelodoubleSolenoid = new DoubleSolenoid(4,5); O ROTATION
-   * MOTOR DA PANEL VAI SER LEVANTADO POR OUTRO MOTOR
+   * 
+   * 
+   * /* CHASSI MOVEMENT- SPARKS-PID-DOUBLEROTAT
    */
-
-  /* CHASSI MOVEMENT- SPARKS-PID-DOUBLEROTAT */
   Spark m_chassiMotorsLeft = new Spark(kMotorLeftPort);
   Spark m_chassiMotorsRight = new Spark(kMotorRightPort);
   DifferentialDrive m_chassiDrive = new DifferentialDrive(m_chassiMotorsLeft, m_chassiMotorsRight);
@@ -130,43 +109,33 @@ public class Robot extends TimedRobot {
   final PIDController m_pidTurnController = new PIDController(kTurnP, kTurnI, kTurnD);
   double zRotation = 0.0;
 
-  /* PID Encoder Shooter */
-  static final double kP = .1;
-  static final double kI = .0;
-  static final double kD = .001;
-  final PIDController m_pidArmShooterController = new PIDController(kP, kI, kD);
-  double setpointShooter = 0.0;//[Or barel] ShooterArm setpoint(s) para vc definir, Lucas!
-
-  /* PID Encoder Climb */
+  /* PID Arm TEMOS QUE TESTAR OS VALORES */
   static final double kcP = .1;
   static final double kcI = .0;
   static final double kcD = .001;
-  final PIDController m_pidArmClimbController = new PIDController(kcP, kcI, kcD);
-  double setpointClimb = 0.0;//[Or barel] ClimbArm setpoint(s) para vc definir, Lucas!
+  final PIDController m_pidArm = new PIDController(kcP, kcI, kcD);
+  double setpointClimb = 0.0;// [Or barel] ClimbArm setpoint(s) para vc definir, Lucas!
 
-  /* movimento pid infravermelho */
+  /* movimento PID infravermelho */
 
   private final MedianFilter m_filter = new MedianFilter(15);
   private final AnalogInput m_infrared = new AnalogInput(kInfraredPort);
-  private final PIDController m_pidController = new PIDController(kInfraredP, kInfraredI, kInfraredD);
+  private final PIDController m_pidInfraRedController = new PIDController(kInfraredP, kInfraredI, kInfraredD);
 
+  /* MOTORS */
 
-  /* MOTORS & TALONS */
-
-  /* Intake e Shooter (1 talon) */
-  Talon m_intakeMotor = new Talon(kIntakePort);
+  /* Intake e Shooter (1 victor) */
+  VictorSP m_intakeRedLineMotor = new VictorSP(kRedLinePort);
+  VictorSP m_intakeMiniCIMMotor = new VictorSP(kMiniCIMPort);
   /* Talon m_shooterMotor = new Talon (kShooterPort); */
 
-  /* Control Panel (1 talon) */
-  Talon m_panelMotor = new Talon(kPanelPort);
-
-  /* Climbing (2 victor) */
-  VictorSP m_climbMotor1 = new VictorSP(kClimbPort);
-  VictorSP m_climbMotor2 = new VictorSP(kClimbPort2);
+  /* Climbing (2 talons) */
+  Talon m_climbMotor1 = new Talon(kClimbPort);
+  Talon m_climbMotor2 = new Talon(kClimbPort2);
   SpeedControllerGroup m_climbMotors = new SpeedControllerGroup(m_climbMotor1, m_climbMotor2);
 
-  /* Shooter & Climb ARM */
-  Encoder m_encoderArm = new Encoder(kEncoderPort);
+  /* ARM (1 victor) */
+  VictorSP m_MotorArm = new VictorSP(kMotorArmPort);
 
   /* JOYSTICK */
   final Joystick m_pilotStick = new Joystick(kPilotstickPort);
@@ -195,9 +164,14 @@ public class Robot extends TimedRobot {
   }
 
   public double getpidInfraredOutput(double distance) {
-    m_pidController.setSetpoint(distance);
-    return m_pidController.calculate(m_filter.calculate(m_infrared.getVoltage()));
+    m_pidInfraRedController.setSetpoint(distance);
+    return m_pidInfraRedController.calculate(m_filter.calculate(m_infrared.getVoltage()));
   }
+
+  /* Pneumatica */
+  Compressor comp = new Compressor();
+  DoubleSolenoid solenoid = new DoubleSolenoid(0, 1);
+  SpeedControllerGroup climb = new SpeedControllerGroup(new Talon(4), new Talon(5));
 
   @Override
   public void robotInit() {
@@ -259,69 +233,50 @@ public class Robot extends TimedRobot {
   }
 
   void listenIntakeButtons() {
-    m_intakeMotor.set(m_pilotStick.getThrottle());
 
     if (m_pilotStick.getRawButton(kIntakeButton)) {
-      m_intakeMotor.set(kIntakevelocity);
-    }
-
-    m_intakeMotor.set(-m_pilotStick1.getThrottle());
-  }
-
-  void listenShooterButtons() {
-    double pidOutput = m_pidArmShooterController.calculate(m_encoderArm.getDistance());
-    zRotation = pidOutput;
-    //if(m_copilotStick.getRawButtonpressed(kEncoderArmShooterUp)){
-     // m_encoderArm.set(m_pidArmShooterController);
-    //else if(m_copilotStick.getRawButtonPressed(kEncoderArmShooterDown)){
-     // m_encoderArm.set(-m_pidArmShooterController);
-    }
-
-  }
-  }
-
-  void listenControlPanelButton() {
-
-    /*
-     * VAMOS USAR MOTOR AO INVÉS DE PNEUMO-
-     * if(m_copilotStick.getRawButtonPressed(KEnablePanelPneumoButton)&&
-     * !pneumoIsActive ){ m_panelodoubleSolenoid.set(DoubleSolenoid.Value.kForward);
-     * pneumoIsActive = true; } else
-     * if(m_copilotStick.getRawButtonPressed(KEnablePanelPneumoButton) &&
-     * pneumoIsActive){ m_panelodoubleSolenoid.set(DoubleSolenoid.Value.kReverse);
-     * pneumoIsActive = false; }
-     */
-
-    if (m_copilotStick.getRawButtonPressed(KEnablePanelUpButton) && !PanelIsUp) {
-      m_panelMotor.set(kPanelUpvelocity);
-      PanelIsUp = true;
-    } else if (m_copilotStick.getRawButtonPressed(KEnablePanelUpButton) && PanelIsUp) {
-      m_panelMotor.set(-kPanelUpvelocity);
-      PanelIsUp = false;
-    }
-    // if (m_copilotStick.getRawButton(kEnablePanelRotationButton)) {
-    // m_panelRotationMotor.set(kPanelRotationvelocity);
-    // } else
-    // m_panelRotationMotor.set(0);
-  }
-
-  void listenClimbButton() {
-    /*if (m_copilotStick.getRawButton(kEnableClimbButton)) {
-      m_climbMotor1.set(kClimbVelocity);
-    }*/ 
-    if (m_copilotStick.getRawButtonPressed(kEncoderArmClimb)){
-      m_encoderArm.set(m_pidArmClimbController);
-    }
-    
-   // double pidOutput = m_pidArmClimbController.calculate(m_encoderArm.GetDistance());
-    //zRotation = pidOutput;
-     if (m_copilotStick.getRawButton(kEnablePneumaticClimbButton)) {
-     m_climbdoubleSolenoid.set(DoubleSolenoid.Value.kForward);
-    }
-    if (m_copilotStick.getRawButton(kEnableReverseClimbButton)) {
-      m_climbMotor2.set(kClimReverseVelocity);
+      m_intakeRedLineMotor.set(kIntakeRedLineVelocity);
+      m_intakeMiniCIMMotor.set(-kIntakeMiniCIMVelocity);
+    } else {
+      m_intakeRedLineMotor.set(0);
+      m_intakeMiniCIMMotor.set(m_pilotStick.getThrottle());
     }
   }
+
+  void listenArmMovements() {
+    if (m_copilotStick.getRawButton(kArmButtonUp)) {
+      m_MotorArm.set(0.3);
+    } else if (m_copilotStick.getRawButton(kArmButtonDown)) {
+      m_MotorArm.set(-.15);
+    } else {
+      m_MotorArm.set(m_copilotStick.getY() + .07);
+    }
+  }
+
+  void listenClimbButton() { // [israhdahrouj] DEFINIR BOTÕES COM COPILOTO
+    if (m_copilotStick.getRawButton(-1)) {
+      solenoid.set(DoubleSolenoid.Value.kForward);
+    }
+    if (m_copilotStick.getRawButton(-1)) {
+      solenoid.set(DoubleSolenoid.Value.kReverse);
+    }
+    if (m_copilotStick.getRawButton(-1)) {
+      climb.set(.6);
+    } else if (m_copilotStick.getRawButton(-1)) {
+      climb.set(-.6);
+    } else {
+      climb.set(0);
+    }
+  }
+
+  /*
+   * void listenShooterButtons() { double pidOutput =
+   * m_pidArm.calculate(m_MotorArm.getDistance()); zRotation = pidOutput;
+   * //if(m_copilotStick.getRawButtonpressed(kEncoderArmShooterUp)){ //
+   * m_encoderArm.set(m_pidArmShooterController); //else
+   * if(m_copilotStick.getRawButtonPressed(kEncoderArmShooterDown)){ //
+   * m_encoderArm.set(-m_pidArmShooterController); }
+   */
 
   @Override
   public void teleopPeriodic() {
@@ -329,14 +284,15 @@ public class Robot extends TimedRobot {
 
     listenChassiMovementButtons();
 
+    listenIntakeButtons();
+
+    listenArmMovements();
+
+    listenClimbButton();
     /*
-     * listenIntakeButtons();
-     * 
      * listenShooterButtons();
      * 
-     * listenControlPanelButton();
-     * 
-     * log(); listenClimbButton();
+     * log();
      */
 
   }
@@ -347,6 +303,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testPeriodic() {
+
   }
 
   @Override
