@@ -68,10 +68,11 @@ public class Robot extends TimedRobot {
    */
   double kIntakeRedLineVelocity = 0.3;
   double kIntakeMiniCIMVelocity = 0.6;
-  double kShootervelocity = 1;
-  double kClimbVelocity = 0.4;
-  double kClimReverseVelocity = 0.4;
-  double ArmVelocityPID = 0.3;
+  double kClimbVelocity = 0.6;
+  //double kClimReverseVelocity = 0.4;
+  //double ArmVelocityPID = 0.3;
+  double kArmUpVelocity = 0.3;
+  double kArmDownVelocity = -0.15;
 
   /*
    * constantes
@@ -245,9 +246,9 @@ public class Robot extends TimedRobot {
 
   void listenArmMovements() {
     if (m_copilotStick.getRawButton(kArmButtonUp)) {
-      m_MotorArm.set(0.3);
+      m_MotorArm.set(kArmUpVelocity);
     } else if (m_copilotStick.getRawButton(kArmButtonDown)) {
-      m_MotorArm.set(-.15);
+      m_MotorArm.set(kArmDownVelocity);
     } else {
       m_MotorArm.set(m_copilotStick.getY() + .07);
     }
@@ -261,22 +262,13 @@ public class Robot extends TimedRobot {
       solenoid.set(DoubleSolenoid.Value.kReverse);
     }
     if (m_copilotStick.getRawButton(-1)) {
-      climb.set(.6);
+      climb.set(kClimbVelocity);
     } else if (m_copilotStick.getRawButton(-1)) {
-      climb.set(-.6);
+      climb.set(-kClimbVelocity);
     } else {
       climb.set(0);
     }
   }
-
-  /*
-   * void listenShooterButtons() { double pidOutput =
-   * m_pidArm.calculate(m_MotorArm.getDistance()); zRotation = pidOutput;
-   * //if(m_copilotStick.getRawButtonpressed(kEncoderArmShooterUp)){ //
-   * m_encoderArm.set(m_pidArmShooterController); //else
-   * if(m_copilotStick.getRawButtonPressed(kEncoderArmShooterDown)){ //
-   * m_encoderArm.set(-m_pidArmShooterController); }
-   */
 
   @Override
   public void teleopPeriodic() {
@@ -289,12 +281,9 @@ public class Robot extends TimedRobot {
     listenArmMovements();
 
     listenClimbButton();
-    /*
-     * listenShooterButtons();
-     * 
-     * log();
-     */
-
+      
+    log();
+     
   }
 
   @Override
