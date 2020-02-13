@@ -12,6 +12,8 @@ import edu.wpi.first.wpilibj.Spark;
 import edu.wpi.first.wpilibj.SpeedControllerGroup;
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.VictorSP;
@@ -19,7 +21,10 @@ import edu.wpi.first.wpilibj.controller.PIDController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
+
 public class Robot extends TimedRobot {
+
+  NetworkTableInstance tableInstance = NetworkTableInstance.getDefault();
   /* PORTS */
 
   /* portas USB */
@@ -131,6 +136,20 @@ public class Robot extends TimedRobot {
     return 0.;
   }
 
+  static final double kPixyP = .01;
+  static final double kPixyI = .0;
+  static final double kPixyD = .001;
+  final PIDController m_pidPixyController = 
+      new PIDController(kPixyP, kPixyI, kPixyD);
+
+  
+  static final double kPixyAreaP = .1;
+  static final double kPixyAreaI = .0;
+  static final double kPixyAreaD = .001;
+  final PIDController m_pidPixyControllerArea = 
+      new PIDController(kPixyP, kPixyI, kPixyD);
+  
+
   /* LIMITADOR DE VELOCIDADE */
   public static double limit(double velocity, double limit) {
     if (velocity > limit)
@@ -149,7 +168,7 @@ public class Robot extends TimedRobot {
   public void robotInit() {
     m_pidTurnController.enableContinuousInput(-180, 180);
     m_pilotStick.setXChannel(4);
-    m_compressor.start();
+    // m_compressor.start();
     m_pidTurnController.setTolerance(.05);
     CameraServer.getInstance().startAutomaticCapture();
     m_pilotStick.setThrottleChannel(3);
@@ -186,6 +205,26 @@ public class Robot extends TimedRobot {
     m_pidTurnController.setSetpoint(setpoint);
   }
 
+  void grabPowerCell() {
+    NetworkTable table = tableInstance.getTable("SmartDashboard");
+    double x = table.getEntry("x").getDouble(0);
+    double y = table.getEntry("y").getDouble(0);
+    double width = table.getEntry("width").getDouble(0);
+    double height = table.getEntry("height").getDouble(0);
+    System.out.println(x + " " + y);
+    // double centerX = x + width/2.0;
+    double centerX = x - 100;
+    double area = width * height;
+
+    double pidOutputX = m_pidPixyController.calculate(centerX);
+    double pidOutputArea = m_pidPixyControllerArea.calculate(area);
+    m_chassiDrive.arcadeDrive(limit(pidOutputArea, 0.5), 
+        -limit(pidOutputX, 0.7));
+    // System.out.println(centerX + " " + pidOutputX);
+    System.out.println(area + " " + pidOutputArea);
+
+  }
+
   void listenChassiMovementButtons() {
     if (m_pilotStick.getRawButton(kEnablePIDmoveButton)) {
       double pidOutput = m_pidTurnController.calculate(m_gyro.pidGet());
@@ -201,6 +240,12 @@ public class Robot extends TimedRobot {
     }
     if (m_copilotStick.getThrottle()!= 0 || m_copilotStick1.getThrottle() != 0) {
       m_chassiDrive.arcadeDrive((limit(m_copilotStick2.getThrottle(), 0.7)), limit(m_copilotStick3.getThrottle(), 0.7), true);
+    }
+
+    // ToDo: trocar botão?
+    // ToDo: aumentar ganho do PID e adicionar código de intake
+    if (m_pilotStick.getRawButton(4)) { 
+      grabPowerCell();  
     }
   }
 
