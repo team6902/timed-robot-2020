@@ -1,31 +1,27 @@
 package frc.robot;
 
 import com.kauailabs.navx.frc.AHRS;
-
-import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.MedianFilter;
+import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.Spark;
-import edu.wpi.first.wpilibj.SpeedController;
 import edu.wpi.first.wpilibj.SpeedControllerGroup;
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.Victor;
 import edu.wpi.first.wpilibj.VictorSP;
 import edu.wpi.first.wpilibj.controller.PIDController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Robot extends TimedRobot {
-  /*
-   * PORTS
-   */
+  /* PORTS */
+
   /* portas USB */
   int kPilotstickPort = 0;
   int kCopilotstickPort = 1;
@@ -33,42 +29,29 @@ public class Robot extends TimedRobot {
   /* portas ROBORIO */
   int kMotorLeftPort = 8;
   int kMotorRightPort = 9;
-
   int kRedLinePort = 1;
   int kMiniCIMPort = 2;
-
   int kMotorArmPort = 3;
-
   int kClimbPort = 4;
   int kClimbPort2 = 5;
+  int kServoPort = 7;
 
-  /*
-   * BUTTONS m_pilotStick1
-   */
+  /* BUTTONS m_pilotStick */
   int kNextSetPoint = 2;
   int kEnablePIDmoveButton = 1;
   int kIntakeButton = 6;
+  int kIntakeReverseButton = 5;
 
-  /*
-   * BUTTONS m_copilotStick
-   */
-
-  int kEnableClimbButton = 6;
-  int kEnablePneumaticClimbButton = 8;
-  int kEnableReverseClimbButton = 5;
+  /* BUTTONS m_copilotStick */
   int kArmButtonUp = 1;// PID//
   int kArmButtonDown = 2;// PID//
-  /*
-   * int kPotentiometeroArmShooterDown = 2; //PID// int kPotentiometerArmClimb =
-   * -1 ; //PID// //escolher botao
-   */
+  int kButtonMotorClimbActivated = 6;
+  int kButtonMotorClimbReverse = 5;
 
   /* VELOCITY */
   double kIntakeRedLineVelocity = 0.3;
   double kIntakeMiniCIMVelocity = 0.6;
   double kClimbVelocity = 0.6;
-  // double kClimbReverseVelocity = 0.4;
-  // double ArmVelocityPID = 0.3;
   double kArmUpVelocity = 0.3;
   double kArmDownVelocity = -0.15;
   double kArmVelocity = .07;
@@ -80,7 +63,6 @@ public class Robot extends TimedRobot {
   static final double kHoldDistanceAutonomous = 1; /* ajustar */
 
   /* CONSTANTES PID INFRAVERMELHO */
-
   private static final double kInfraredP = 7.0;
   private static final double kInfraredI = 0.018;
   private static final double kInfraredD = 1.5;
@@ -88,13 +70,17 @@ public class Robot extends TimedRobot {
   /* TIMER */
   static Timer m_timer = new Timer();
 
+  /* SERVO */
+  Servo servo = new Servo(kServoPort);
+
+  /* BOOLEAN SERVO */
+  boolean servoB = false;
+
   /* PNEUMATIC */
-  Compressor comp = new Compressor();
+  Compressor m_compressor = new Compressor();
   DoubleSolenoid solenoid = new DoubleSolenoid(0, 1);
 
-  /*
-   * CHASSI MOVEMENT- SPARKS-PID-DOUBLEROTAT
-   */
+  /* CHASSI MOVEMENT- SPARKS-PID-DOUBLEROTAT */
   Spark m_chassiMotorsLeft = new Spark(kMotorLeftPort);
   Spark m_chassiMotorsRight = new Spark(kMotorRightPort);
   DifferentialDrive m_chassiDrive = new DifferentialDrive(m_chassiMotorsLeft, m_chassiMotorsRight);
@@ -106,27 +92,18 @@ public class Robot extends TimedRobot {
   final PIDController m_pidTurnController = new PIDController(kTurnP, kTurnI, kTurnD);
   double zRotation = 0.0;
 
-  /* PID Arm TEMOS QUE TESTAR OS VALORES */
-  static final double kcP = .1;
-  static final double kcI = .0;
-  static final double kcD = .001;
-  final PIDController m_pidArm = new PIDController(kcP, kcI, kcD);
-  double setpointClimb = 0.0;// [Or barel] ClimbArm setpoint(s) para vc definir, Lucas!
-
-  /* movimento PID infravermelho */
-
+  /* MOVIMENTO PID INFRAVERMELHO */
   private final MedianFilter m_filter = new MedianFilter(15);
   private final AnalogInput m_infrared = new AnalogInput(kInfraredPort);
   private final PIDController m_pidInfraRedController = new PIDController(kInfraredP, kInfraredI, kInfraredD);
 
   /* MOTORS */
 
-  /* Intake e Shooter (1 victor) */
+  /* INTAKE (1 victor) */
   VictorSP m_intakeRedLineMotor = new VictorSP(kRedLinePort);
   VictorSP m_intakeMiniCIMMotor = new VictorSP(kMiniCIMPort);
-  /* Talon m_shooterMotor = new Talon (kShooterPort); */
 
-  /* Climbing (2 talons) */
+  /* CLIMB (2 talons) */
   Talon m_climbMotor1 = new Talon(kClimbPort);
   Talon m_climbMotor2 = new Talon(kClimbPort2);
   SpeedControllerGroup m_climbMotors = new SpeedControllerGroup(m_climbMotor1, m_climbMotor2);
@@ -138,6 +115,9 @@ public class Robot extends TimedRobot {
   final Joystick m_pilotStick = new Joystick(kPilotstickPort);
   final Joystick m_copilotStick = new Joystick(kCopilotstickPort);
   final Joystick m_pilotStick1 = new Joystick(kPilotstickPort);
+  final Joystick m_copilotStick1 = new Joystick(kCopilotstickPort);
+  final Joystick m_copilotStick2 = new Joystick(kCopilotstickPort);
+  final Joystick m_copilotStick3 = new Joystick(kCopilotstickPort);
 
   double nextSetpoint() {
     if (setpoint == 0)
@@ -151,7 +131,7 @@ public class Robot extends TimedRobot {
     return 0.;
   }
 
-  /* limitador de velocidade */
+  /* LIMITADOR DE VELOCIDADE */
   public static double limit(double velocity, double limit) {
     if (velocity > limit)
       return limit;
@@ -169,14 +149,16 @@ public class Robot extends TimedRobot {
   public void robotInit() {
     m_pidTurnController.enableContinuousInput(-180, 180);
     m_pilotStick.setXChannel(4);
-    // m_compressor.start();
+    m_compressor.start();
     m_pidTurnController.setTolerance(.05);
     CameraServer.getInstance().startAutomaticCapture();
     m_pilotStick.setThrottleChannel(3);
     m_pilotStick1.setThrottleChannel(2);
     m_copilotStick.setThrottleChannel(2);
+    m_copilotStick1.setThrottleChannel(3);
+    m_copilotStick2.setThrottleChannel(1);
+    m_copilotStick3.setThrottleChannel(4);
   }
-
   @Override
   public void autonomousInit() {
   }
@@ -201,7 +183,6 @@ public class Robot extends TimedRobot {
       if (setpoint == 270)
         setpoint = -90;
     }
-    System.out.println(setpoint);
     m_pidTurnController.setSetpoint(setpoint);
   }
 
@@ -209,29 +190,45 @@ public class Robot extends TimedRobot {
     if (m_pilotStick.getRawButton(kEnablePIDmoveButton)) {
       double pidOutput = m_pidTurnController.calculate(m_gyro.pidGet());
       zRotation = pidOutput;
-      m_chassiDrive.arcadeDrive(-m_pilotStick.getY(), limit(zRotation, 0.6));
+      m_chassiDrive.arcadeDrive(m_pilotStick.getY(), limit(zRotation, 0.6));
     } else if (m_pilotStick.getPOV() != -1) {
       double pidOutput = m_pidTurnController.calculate(m_gyro.pidGet());
       zRotation = pidOutput;
-      m_chassiDrive.arcadeDrive(-0.7, limit(zRotation, 0.6));
+      m_chassiDrive.arcadeDrive(0.7, limit(zRotation, 0.6));
     } else {
-      m_chassiDrive.arcadeDrive(-m_pilotStick.getY(), m_pilotStick.getX(), true);
+      m_chassiDrive.arcadeDrive(m_pilotStick.getY(), m_pilotStick.getX(), true);
       zRotation = 0;
     }
-    // if (m_copilotStick.getY() != 0 || m_copilotStick.getX() != 0) {
-    // m_chassiDrive.arcadeDrive(limit(m_copilotStick.getY(), 0.3),
-    // limit(m_copilotStick.getX(), 0.3), true);
-    // }
+    if (m_copilotStick.getThrottle()!= 0 || m_copilotStick1.getThrottle() != 0) {
+      m_chassiDrive.arcadeDrive((limit(m_copilotStick2.getThrottle(), 0.7)), limit(m_copilotStick3.getThrottle(), 0.7), true);
+    }
+  }
+
+  void listenServo() {
+    if (m_pilotStick.getRawButtonPressed(3)) {
+      servoB = !servoB;
+    }
+    if (servoB) {
+      servo.setAngle(0);
+    } else if (!servoB) {
+      servo.setAngle(180);
+    }
   }
 
   void listenIntakeButtons() {
-
     if (m_pilotStick.getRawButton(kIntakeButton)) {
-      m_intakeRedLineMotor.set(kIntakeRedLineVelocity);
+      m_intakeMiniCIMMotor.set(kIntakeMiniCIMVelocity);
+    } 
+
+    else if (m_pilotStick.getRawButton(kIntakeReverseButton)) {
       m_intakeMiniCIMMotor.set(-kIntakeMiniCIMVelocity);
+    } 
+    else m_intakeMiniCIMMotor.set(0);
+
+    if (m_pilotStick.getThrottle() > 0) {
+      m_intakeRedLineMotor.set(-m_pilotStick.getThrottle());
     } else {
-      m_intakeRedLineMotor.set(0);
-      m_intakeMiniCIMMotor.set(m_pilotStick.getThrottle());
+      m_intakeRedLineMotor.set(limit(m_pilotStick1.getThrottle(), 0.8));
     }
   }
 
@@ -241,24 +238,25 @@ public class Robot extends TimedRobot {
     } else if (m_copilotStick.getRawButton(kArmButtonDown)) {
       m_MotorArm.set(kArmDownVelocity);
     } else {
-      m_MotorArm.set(m_copilotStick.getY() + kArmVelocity);
+      m_MotorArm.set(kArmVelocity);
     }
   }
 
-  void listenClimbButton() { // [israhdahrouj] DEFINIR BOTÕES COM COPILOTO
-    if (m_copilotStick.getRawButton(-1)) {
-      solenoid.set(DoubleSolenoid.Value.kForward);
-    }
-    if (m_copilotStick.getRawButton(-1)) {
-      solenoid.set(DoubleSolenoid.Value.kReverse);
-    }
-    if (m_copilotStick.getRawButton(-1)) {
-      m_climbMotors.set(kClimbVelocity);
-    } else if (m_copilotStick.getRawButton(-1)) {
+   void listenClimbButton() {
+    if (m_copilotStick.getRawButton(kButtonMotorClimbActivated)) {
       m_climbMotors.set(-kClimbVelocity);
+    } else if (m_copilotStick.getRawButton(kButtonMotorClimbReverse)) {
+      m_climbMotors.set(kClimbVelocity);
     } else {
       m_climbMotors.set(0);
     }
+    if (m_copilotStick1.getThrottle()>0) {
+      solenoid.set(DoubleSolenoid.Value.kForward);
+    }
+    if (m_copilotStick.getThrottle()>0) {
+      solenoid.set(DoubleSolenoid.Value.kReverse);
+    }
+
   }
 
   @Override
@@ -270,10 +268,12 @@ public class Robot extends TimedRobot {
     listenIntakeButtons();
 
     listenArmMovements();
-
+    
     listenClimbButton();
 
-    log();
+    listenServo();
+
+    // log();
 
   }
 
