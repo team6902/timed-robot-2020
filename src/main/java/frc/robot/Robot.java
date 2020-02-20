@@ -62,18 +62,18 @@ public class Robot extends TimedRobot {
   double kArmVelocity = .07;
 
   /* CONSTANTES */
-  private static final int kInfraredPort = 0; /* ajustar */
-  static final double kHoldDistanceBottomPort = 1; /* [Fabio] ajustar */
-  static final double kHoldDistanceControlPanel = 1; /* [Fabio] ajustar */
+  private static final int kInfraredPort = 3; 
+  static final double kHoldDistanceBottomPort = 2.5; 
   static final double kHoldDistanceAutonomous = 1; /* ajustar */
 
   /* CONSTANTES PID INFRAVERMELHO */
-  private static final double kInfraredP = 7.0;
-  private static final double kInfraredI = 0.018;
+  private static final double kInfraredP = 5.0;
+  private static final double kInfraredI = 0.5;
   private static final double kInfraredD = 1.5;
 
   /* TIMER */
-  static Timer m_timer = new Timer();
+  static Timer m_autoTimer = new Timer();
+  static Timer m_teleopTimer = new Timer();
 
   /* SERVO */
   Servo servo = new Servo(kServoPort);
@@ -124,6 +124,11 @@ public class Robot extends TimedRobot {
   final Joystick m_copilotStick2 = new Joystick(kCopilotstickPort);
   final Joystick m_copilotStick3 = new Joystick(kCopilotstickPort);
 
+  /* Collision detection */
+  double lastWorldLinearAccelX;
+  double lastWorldLinearAccelY;
+  final static double kCollisionThreshold_DeltaG = 0.5f;
+
   double nextSetpoint() {
     if (setpoint == 0)
       return 90.;
@@ -159,11 +164,6 @@ public class Robot extends TimedRobot {
     return velocity;
   }
 
-  public double getpidInfraredOutput(double distance) {
-    m_pidInfraRedController.setSetpoint(distance);
-    return m_pidInfraRedController.calculate(m_filter.calculate(m_infrared.getVoltage()));
-  }
-
   @Override
   public void robotInit() {
     m_pidTurnController.enableContinuousInput(-180, 180);
@@ -180,6 +180,7 @@ public class Robot extends TimedRobot {
   }
   @Override
   public void autonomousInit() {
+    m_autoTimer.start();
   }
 
   @Override
@@ -188,7 +189,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopInit() {
-    m_timer.start();
+    m_teleopTimer.start();
     m_pidTurnController.setTolerance(.08);
   }
 
@@ -206,6 +207,7 @@ public class Robot extends TimedRobot {
   }
 
   void grabPowerCell() {
+    // ToDo: aumentar ganho e retirar limite do PID, evitar colisoes e ativar intake
     NetworkTable table = tableInstance.getTable("SmartDashboard");
     double x = table.getEntry("x").getDouble(0);
     double y = table.getEntry("y").getDouble(0);
@@ -218,11 +220,9 @@ public class Robot extends TimedRobot {
 
     double pidOutputX = m_pidPixyController.calculate(centerX);
     double pidOutputArea = m_pidPixyControllerArea.calculate(area);
-    m_chassiDrive.arcadeDrive(limit(pidOutputArea, 0.5), 
-        -limit(pidOutputX, 0.7));
+    m_chassiDrive.arcadeDrive(pidOutputArea, -pidOutputX);
     // System.out.println(centerX + " " + pidOutputX);
-    System.out.println(area + " " + pidOutputArea);
-
+    // System.out.println(area + " " + pidOutputArea);
   }
 
   void listenChassiMovementButtons() {
@@ -238,8 +238,10 @@ public class Robot extends TimedRobot {
       m_chassiDrive.arcadeDrive(m_pilotStick.getY(), m_pilotStick.getX(), true);
       zRotation = 0;
     }
-    if (m_copilotStick.getThrottle()!= 0 || m_copilotStick1.getThrottle() != 0) {
-      m_chassiDrive.arcadeDrive((limit(m_copilotStick2.getThrottle(), 0.7)), limit(m_copilotStick3.getThrottle(), 0.7), true);
+    
+    if (m_copilotStick.getY() != 0 || m_copilotStick1.getX() != 0) {
+      m_chassiDrive.arcadeDrive((limit(m_copilotStick2.getY(), 0.5)), 
+          limit(m_copilotStick3.getX(), 0.5), true);
     }
 
     // ToDo: trocar botão?
@@ -304,6 +306,23 @@ public class Robot extends TimedRobot {
 
   }
 
+  public void detectCollision() {
+    boolean collisionDetected = false;
+
+    double curr_world_linear_accel_x = m_gyro.getWorldLinearAccelX();
+    double currentJerkX = curr_world_linear_accel_x - lastWorldLinearAccelX;
+    lastWorldLinearAccelX = curr_world_linear_accel_x;
+    double curr_world_linear_accel_y = m_gyro.getWorldLinearAccelY();
+    double currentJerkY = curr_world_linear_accel_y - lastWorldLinearAccelY;
+    lastWorldLinearAccelY = curr_world_linear_accel_y;
+
+    if ((Math.abs(currentJerkX) > kCollisionThreshold_DeltaG)
+        || (Math.abs(currentJerkY) > kCollisionThreshold_DeltaG)) {
+      collisionDetected = true;
+    }
+    SmartDashboard.putBoolean("CollisionDetected", collisionDetected);
+  }
+
   @Override
   public void teleopPeriodic() {
     listenSetpointButtons();
@@ -339,7 +358,7 @@ public class Robot extends TimedRobot {
   }
 
   void log() {
-    System.out.printf("%f,%f,%f,%f,%f,%f,%f,%b\n", Robot.m_timer.get(), this.m_pidTurnController.getP(),
+    System.out.printf("%f,%f,%f,%f,%f,%f,%f,%b\n", Robot.m_teleopTimer.get(), this.m_pidTurnController.getP(),
         this.m_pidTurnController.getI(), this.m_pidTurnController.getD(), this.m_gyro.pidGet(), this.zRotation,
         this.m_pidTurnController.getSetpoint(), this.m_pidTurnController.atSetpoint());
   }
