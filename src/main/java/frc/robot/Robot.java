@@ -57,12 +57,11 @@ public class Robot extends TimedRobot {
   int kButtonMotorClimbReverse = 5;
 
   /* VELOCITY */
-  double kIntakeRedLineVelocity = 0.3;
-  double kIntakeMiniCIMVelocity = 0.6;
+  double kIntakeRedlineVelocity = 0.4;
   double kClimbVelocity = 0.6;
-  double kArmUpVelocity = -0.1;
-  double kArmDownVelocity = 0.3;
-  double kArmVelocity = .07;
+  double kArmUpVelocity = -0.5;
+  double kArmDownVelocity = 0.4;
+  double kArmVelocity = .3;
 
   /* CONSTANTES */
   private static final int kInfraredPort = 3;
@@ -105,8 +104,8 @@ public class Robot extends TimedRobot {
   /* MOTORS */
 
   /* INTAKE (1 victor) */
-  VictorSP m_intakeRedLineMotor = new VictorSP(kRedLinePort);
-  VictorSP m_intakeMiniCIMMotor = new VictorSP(kMiniCIMPort);
+  VictorSP m_intakeWindowMotor = new VictorSP(kRedLinePort);
+  VictorSP m_intakeRedlineMotor = new VictorSP(kMiniCIMPort);
 
   /* CLIMB (2 talons) */
   Talon m_climbMotor1 = new Talon(kClimbPort);
@@ -128,19 +127,7 @@ public class Robot extends TimedRobot {
   double lastWorldLinearAccelX;
   double lastWorldLinearAccelY;
   final static double kCollisionThreshold_DeltaG = 0.5f;
-
-  double nextSetpoint() {
-    if (setpoint == 0)
-      return 90.;
-    if (setpoint == 90)
-      return 180.;
-    if (setpoint == 180)
-      return -90.;
-    if (setpoint == -90)
-      return 0.;
-    return 0.;
-  }
-
+  
   static final double kPixyP = .01;
   static final double kPixyI = .0;
   static final double kPixyD = .001;
@@ -189,11 +176,11 @@ public class Robot extends TimedRobot {
     // // ativar intake
     if (m_autoTimer.get() > 9) {
       System.out.println("ativando intake");
-      m_intakeRedLineMotor.set(.3);
+      m_intakeWindowMotor.set(.3);
     }
     if (m_autoTimer.get() > 14) {
       System.out.println("desativando intake");
-      m_intakeRedLineMotor.set(0);
+      m_intakeWindowMotor.set(0);
     }
   }
   //toDo ajustar PID infrared
@@ -241,11 +228,11 @@ public class Robot extends TimedRobot {
     // // ativar intake
     if (m_autoTimer.get() > 12) {
       System.out.println("ativando intake");
-      m_intakeRedLineMotor.set(.3);
+      m_intakeWindowMotor.set(.3);
     }
     if (m_autoTimer.get() > 14) {
       System.out.println("desativando intake");
-      m_intakeRedLineMotor.set(0);
+      m_intakeWindowMotor.set(0);
     }
   }
 // AUTO 3 - INICIO NA PAREDE DA BOTTOM PORT
@@ -289,11 +276,11 @@ public class Robot extends TimedRobot {
     // // ativar intake
     if (m_autoTimer.get() > 10) {
       System.out.println("ativando intake");
-      m_intakeRedLineMotor.set(.3);
+      m_intakeWindowMotor.set(.3);
     }
     if (m_autoTimer.get() > 14) {
       System.out.println("desativando intake");
-      m_intakeRedLineMotor.set(0);
+      m_intakeWindowMotor.set(0);
     }
   }
 
@@ -414,16 +401,16 @@ public class Robot extends TimedRobot {
 
   void listenIntakeButtons() {
     if (m_pilotStick.getRawButton(kIntakeButton)) {
-      m_intakeMiniCIMMotor.set(kIntakeMiniCIMVelocity);
+      m_intakeRedlineMotor.set(kIntakeRedlineVelocity);
     } else if (m_pilotStick.getRawButton(kIntakeReverseButton)) {
-      m_intakeMiniCIMMotor.set(-kIntakeMiniCIMVelocity);
+      m_intakeRedlineMotor.set(-kIntakeRedlineVelocity);
     } else
-      m_intakeMiniCIMMotor.set(0);
+      m_intakeRedlineMotor.set(0);
 
     if (m_pilotStick.getThrottle() > 0) {
-      m_intakeRedLineMotor.set(-m_pilotStick.getThrottle());
+      m_intakeWindowMotor.set(-m_pilotStick.getThrottle());
     } else {
-      m_intakeRedLineMotor.set(limit(m_pilotStick1.getThrottle(), 0.8));
+      m_intakeWindowMotor.set(limit(m_pilotStick1.getThrottle(), 0.8));
     }
   }
 
